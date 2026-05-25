@@ -823,3 +823,8 @@ Expected:
 - All listed tests pass.
 - `workflow-plugin-cms` has no `/metrics` route or `monitoring` package.
 - New templates create `observability.telemetry`, not `metrics.collector`.
+
+Task 8 update: generic observability plugin docs and examples use
+application-neutral telemetry names. Concrete metric names are owned by the
+implementing application or plugin that satisfies the Workflow telemetry
+interfaces.

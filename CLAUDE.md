@@ -32,6 +32,11 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o workflow-plug
 3. Add to `plugin.json` capabilities.moduleTypes
 4. Add tests in `internal/module_example_test.go`
 
+Telemetry metric names are owned by the implementing application or domain
+module. Keep this generic plugin free of application-specific prefixes and
+assertions; tests here should verify routing, filtering, and rendering behavior
+without baking in app metric names.
+
 ## Adding a Step Type
 
 1. Create `internal/step_example.go` implementing the step
