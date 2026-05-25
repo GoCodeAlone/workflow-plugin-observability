@@ -39,6 +39,8 @@ and logs to customer-selected backends.
 - Make `wfctl` and provider plugins able to provision collector resources,
   secrets, network policy, service discovery, and app environment wiring from a
   provider-neutral observability intent.
+- Migrate `/metrics` endpoints only when parity tests prove the replacement
+  emits equivalent counters/histograms/gauges through the neutral telemetry path.
 
 ## Non-Goals
 
@@ -49,6 +51,7 @@ and logs to customer-selected backends.
   basic telemetry.
 - Preserving custom `/metrics` HTTP endpoints when a neutral telemetry interface
   and collector/scrape path can replace them.
+- Shipping dashboard/alert authoring in the first implementation phase.
 
 ## Architecture
 
@@ -116,10 +119,37 @@ Optional later module types:
 - `observability.alerts`: alert/monitor intent that can target Prometheus
   rules, Grafana Alerting, or Datadog monitors.
 
+These are explicitly phase-two or later. The first implementation phase stops at
+emit, collect, render, provision intent, and export.
+
 ### 3. Provider and IaC Integration
 
 Provider plugins own concrete provisioning. The observability plugin produces
 provider-neutral deployment intent; `wfctl` and provider plugins translate it.
+
+The cross-repo boundary is an explicit provider-planning contract. The
+observability plugin emits an `ObservabilityPlan` value through Workflow/wfctl
+interfaces, and provider plugins that support observability declare a consumer
+adapter for that plan. The plan is data, not executable deployment code.
+
+Initial `ObservabilityPlan` shape:
+
+```go
+type ObservabilityPlan struct {
+	ServiceName   string
+	Environment   string
+	ResourceAttrs map[string]string
+	Collector     CollectorPlan
+	Pipelines     []TelemetryPipeline
+	AppEnv         map[string]SecretOrValueRef
+	Resources     []GeneratedResourceRef
+}
+```
+
+`workflow` or `wfctl` owns the shared interface and type boundary. The
+observability plugin owns plan generation and validation. Provider plugins own
+translation to App Platform, Kubernetes, Terraform/OpenTofu, or provider-native
+resources. Unsupported plan features must produce diagnostics before apply.
 
 Examples:
 
@@ -133,6 +163,34 @@ Examples:
   validation that required endpoint/secret references exist.
 - Datadog: direct OTLP intake, Datadog Agent/DDOT deployment, or Datadog
   exporter configuration depending on environment and user choice.
+
+Generated resource names and labels are deterministic:
+
+- `workflow.gocodealone.io/managed-by: workflow-plugin-observability`
+- `workflow.gocodealone.io/app: <app>`
+- `workflow.gocodealone.io/environment: <environment>`
+- `workflow.gocodealone.io/collector: <collector-name>`
+
+These labels are required for rollback and drift detection. Provider plugins
+must delete or mutate only resources with matching ownership labels unless the
+user explicitly opts into adopting pre-existing resources.
+
+## Distribution Rendering
+
+The plugin uses an intermediate telemetry pipeline model rather than treating
+collector configs as interchangeable text. Renderers convert the model to the
+selected runtime:
+
+- OTel Collector renderer: emits collector YAML with receivers, processors,
+  exporters, extensions, and service pipelines.
+- Grafana Alloy renderer: emits River components for OTel, Prometheus, Loki,
+  Tempo/Mimir, and Grafana Cloud paths.
+- Datadog Agent/DDOT renderer: emits agent/collector configuration and app env
+  wiring for OTLP ingest.
+- External renderer: emits only app env/config and validation diagnostics.
+
+The renderer boundary prevents Alloy-specific syntax from leaking into OTel
+Collector YAML and lets each distribution validate its supported components.
 
 ## Data Flow
 
@@ -221,6 +279,18 @@ Existing YAML compatibility can be retained through migration warnings or
 adapters, but the target architecture removes unnecessary custom `/metrics`
 surfaces.
 
+Migration gates for every `/metrics` removal:
+
+1. A focused parity test records representative traffic or module activity and
+   asserts the neutral recorder receives the same metric names, values, and
+   labels that the old endpoint exposed.
+2. A runtime smoke check launches the app with `observability.telemetry` enabled
+   and confirms telemetry reaches either an in-memory test exporter or a local
+   collector.
+3. Dependent app YAML is updated in the same PR or an explicitly linked PR.
+4. Rollback instructions name the exact commit or YAML change that re-enables
+   the old endpoint if the replacement path fails.
+
 ## Error Handling
 
 - Invalid collector distribution/topology/signal combinations fail validation
@@ -236,9 +306,14 @@ surfaces.
 - Secret values are resolved through Workflow secrets interfaces and are never
   embedded in generated docs, logs, or plan output.
 - Network exposure defaults to private collector endpoints. Public OTLP ingest
-  requires explicit opt-in and auth configuration.
-- Telemetry attribute allow/deny rules are available before export so users can
-  drop PII-bearing attributes.
+  requires explicit opt-in, TLS, authentication, and provider-supported network
+  controls.
+- Tenant/environment/resource attributes are attached at collection time so
+  multi-tenant backends can separate data.
+- Telemetry attribute allow/deny rules run before export. Known sensitive keys
+  such as `password`, `token`, `secret`, `authorization`, `cookie`, and
+  `set-cookie` are deny-listed by default unless the user explicitly overrides
+  the policy.
 - Direct Datadog/Grafana API integrations use scoped API keys and provider-owned
   secret references.
 - The plugin treats logs as potentially sensitive and avoids default stdout log
@@ -259,6 +334,33 @@ Runtime rollback has three levels:
 
 For the `/metrics` removal work, rollback is a revert of the app/plugin commit
 plus re-enabling the prior route until dependent applications are migrated.
+
+Generated collector resources must carry the ownership labels listed in
+Provider and IaC Integration. Rollback and drift repair are restricted to those
+labels so unrelated user-managed Grafana, Datadog, or collector resources are
+not deleted.
+
+## Delivery Phases
+
+Phase 1 is intentionally small and independently shippable:
+
+1. Scaffold `workflow-plugin-observability`.
+2. Add neutral telemetry interfaces to Workflow core/SDK.
+3. Implement `observability.telemetry` and an in-memory/test exporter.
+4. Implement `observability.collector` validation and intermediate pipeline
+   model.
+5. Implement OTel Collector YAML rendering and external-collector env wiring.
+6. Migrate one current `/metrics` producer behind parity tests.
+
+Phase 2 adds managed collector provisioning through `wfctl` and provider plugin
+adapters, beginning with the provider we dogfood first.
+
+Phase 3 adds Grafana Alloy, Datadog Agent/DDOT, direct Datadog OTLP intake, Loki
+push, Prometheus remote-write/scrape helpers, and richer backend-specific
+resources.
+
+Dashboards and alert authoring are deferred until collection/export paths are
+working and dogfooded.
 
 ## Assumptions
 
@@ -296,4 +398,3 @@ plus re-enabling the prior route until dependent applications are migrated.
   https://docs.datadoghq.com/opentelemetry/setup/otlp_ingest/
 - Prometheus OTLP receiver:
   https://prometheus.io/docs/guides/opentelemetry/
-
