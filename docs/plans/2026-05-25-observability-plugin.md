@@ -687,8 +687,8 @@ func TestServerEmitMetrics_Parity(t *testing.T) {
 		t.Fatal(err)
 	}
 	metrics := rec.Metrics()
-	assertMetric(t, metrics, "cms_requests_total", 1, telemetry.Attrs{"tenant": "acme"})
-	assertMetric(t, metrics, "cms_requests_total", 1, telemetry.Attrs{"tenant": "_global"})
+	assertMetric(t, metrics, "<app>_requests_total", 1, telemetry.Attrs{"tenant": "acme"})
+	assertMetric(t, metrics, "<app>_requests_total", 1, telemetry.Attrs{"tenant": "_global"})
 }
 ```
 
