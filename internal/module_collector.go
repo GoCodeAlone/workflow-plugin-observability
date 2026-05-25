@@ -115,12 +115,16 @@ func collectorConfigFromMap(name string, cfg map[string]any) CollectorConfig {
 		Distribution: stringValue(cfg["distribution"]),
 		Topology:     stringValue(cfg["topology"]),
 		Signals:      stringSliceValue(cfg["signals"]),
+		Receivers:    receiverConfigsValue(cfg["receivers"]),
+		Processors:   processorConfigsValue(cfg["processors"]),
+		Exporters:    exporterConfigsValue(cfg["exporters"]),
+		Routes:       routeConfigsValue(cfg["routes"]),
 	}
 	endpoint := stringValue(cfg["endpoint"])
 	if endpoint == "" {
 		endpoint = stringValue(cfg["otlpEndpoint"])
 	}
-	if endpoint != "" {
+	if endpoint != "" && len(out.Exporters) == 0 {
 		out.Exporters = map[string]ExporterConfig{
 			"otlp": {Type: "otlphttp", Endpoint: endpoint},
 		}
@@ -183,5 +187,119 @@ func stringSliceValue(value any) []string {
 		return strings.Split(typed, ",")
 	default:
 		return nil
+	}
+}
+
+func receiverConfigsValue(value any) map[string]ReceiverConfig {
+	items := mapValue(value)
+	if len(items) == 0 {
+		return nil
+	}
+	out := make(map[string]ReceiverConfig, len(items))
+	for name, raw := range items {
+		cfg := mapValue(raw)
+		out[name] = ReceiverConfig{
+			Type:      stringValue(cfg["type"]),
+			Endpoint:  stringValue(cfg["endpoint"]),
+			Protocols: stringSliceValue(cfg["protocols"]),
+			Public:    boolValue(cfg["public"]),
+			AuthRef:   stringValue(cfg["authRef"]),
+		}
+	}
+	return out
+}
+
+func processorConfigsValue(value any) map[string]ProcessorConfig {
+	items := mapValue(value)
+	if len(items) == 0 {
+		return nil
+	}
+	out := make(map[string]ProcessorConfig, len(items))
+	for name, raw := range items {
+		cfg := mapValue(raw)
+		out[name] = ProcessorConfig{
+			Type:   stringValue(cfg["type"]),
+			Config: mapValue(cfg["config"]),
+		}
+	}
+	return out
+}
+
+func exporterConfigsValue(value any) map[string]ExporterConfig {
+	items := mapValue(value)
+	if len(items) == 0 {
+		return nil
+	}
+	out := make(map[string]ExporterConfig, len(items))
+	for name, raw := range items {
+		cfg := mapValue(raw)
+		out[name] = ExporterConfig{
+			Type:        stringValue(cfg["type"]),
+			Endpoint:    stringValue(cfg["endpoint"]),
+			Headers:     stringMapValue(cfg["headers"]),
+			APIKeyRef:   stringValue(cfg["apiKeyRef"]),
+			AuthRef:     stringValue(cfg["authRef"]),
+			Public:      boolValue(cfg["public"]),
+			Compression: stringValue(cfg["compression"]),
+		}
+	}
+	return out
+}
+
+func routeConfigsValue(value any) []RouteConfig {
+	items, err := sliceOfMaps(value)
+	if err != nil || len(items) == 0 {
+		return nil
+	}
+	out := make([]RouteConfig, 0, len(items))
+	for _, item := range items {
+		out = append(out, RouteConfig{
+			Signals:    stringSliceValue(item["signals"]),
+			Receivers:  stringSliceValue(item["receivers"]),
+			Processors: stringSliceValue(item["processors"]),
+			Exporters:  stringSliceValue(item["exporters"]),
+		})
+	}
+	return out
+}
+
+func mapValue(value any) map[string]any {
+	switch typed := value.(type) {
+	case map[string]any:
+		return typed
+	case map[string]string:
+		out := make(map[string]any, len(typed))
+		for k, v := range typed {
+			out[k] = v
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func stringMapValue(value any) map[string]string {
+	switch typed := value.(type) {
+	case map[string]string:
+		return typed
+	case map[string]any:
+		out := make(map[string]string, len(typed))
+		for k, v := range typed {
+			out[k] = stringValue(v)
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func boolValue(value any) bool {
+	switch typed := value.(type) {
+	case bool:
+		return typed
+	case string:
+		return typed == "true"
+	default:
+		return false
 	}
 }
