@@ -37,6 +37,7 @@ func (p *observabilityPlugin) Manifest() sdk.PluginManifest {
 // Remove this method if the plugin does not provide any modules.
 func (p *observabilityPlugin) ModuleTypes() []string {
 	return []string{
+		"observability.collector",
 		"observability.telemetry",
 	}
 }
@@ -45,6 +46,8 @@ func (p *observabilityPlugin) ModuleTypes() []string {
 // Remove this method if the plugin does not provide any modules.
 func (p *observabilityPlugin) CreateModule(typeName, name string, config map[string]any) (sdk.ModuleInstance, error) {
 	switch typeName {
+	case "observability.collector":
+		return newCollectorModule(name, config)
 	case "observability.telemetry":
 		return newTelemetryModule(name, config)
 	default:

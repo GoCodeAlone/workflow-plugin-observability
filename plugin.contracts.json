@@ -2,6 +2,13 @@
     "version": "1",
     "contracts": [
         {
+            "moduleType": "observability.collector",
+            "methods": [
+                "plan",
+                "renderConfig"
+            ]
+        },
+        {
             "moduleType": "observability.telemetry",
             "methods": [
                 "recordMetrics",
