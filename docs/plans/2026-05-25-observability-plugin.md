@@ -244,6 +244,8 @@ Rollback: revert this commit; no runtime paths depend on the new additive interf
 **Files:**
 - Create: `/Users/jon/workspace/workflow/telemetry/bridge.go`
 - Create: `/Users/jon/workspace/workflow/telemetry/bridge_test.go`
+- Create: `/Users/jon/workspace/workflow/module/telemetry_bridge.go`
+- Create: `/Users/jon/workspace/workflow/module/telemetry_bridge_test.go`
 - Modify: `/Users/jon/workspace/workflow/plugins/observability/wiring.go`
 - Test: `/Users/jon/workspace/workflow/plugins/observability/plugin_test.go`
 
@@ -280,6 +282,27 @@ func TestNoopSinkKeepsEmittersInert(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestBridgeModuleCollectsOnInterval(t *testing.T) {
+	app := newTestAppWithServices(map[string]any{"emitter": testMetricEmitter{}})
+	sink := &recordingSink{}
+	mod := module.NewTelemetryBridge("telemetry-bridge", sink, module.TelemetryBridgeConfig{
+		Interval: 10 * time.Millisecond,
+		Timeout:  time.Second,
+	})
+	if err := mod.Init(app); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := mod.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	require.Eventually(t, func() bool { return len(sink.metrics) >= 3 }, time.Second, 10*time.Millisecond)
+	if err := mod.Stop(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}
 ```
 
 **Step 2: Run tests to verify they fail**
@@ -296,8 +319,20 @@ Implement:
 - `BridgeConfig{Timeout time.Duration}` with default 2 seconds.
 - `Bridge.Collect(ctx, app modular.Application) error` that loops over `app.SvcRegistry()`, calls `MetricEmitter` and `LogEmitter`, batches records, and forwards to sink with context timeout.
 - `NoopSink` for absent plugin.
+- `module.TelemetryBridge` as a normal Modular lifecycle module with
+  `Interval`, `Timeout`, `Start`, and `Stop`; it runs collection on a ticker and
+  never blocks application traffic on sink failure.
+- `telemetry.ServiceInvokerSink` or equivalent host-side adapter that wraps an
+  existing service invoker and calls `recordMetrics`, `recordLogs`, and
+  `recordSpanEvents`. This adapter is the only bridge from the in-process
+  Workflow app to the external plugin service invocation path.
 
-In `workflow/plugins/observability/wiring.go`, add a low-priority hook named `observability.telemetry-bridge` that only runs when a service named `observability.telemetry.sink` exists; otherwise it installs or uses `NoopSink`. Keep it non-fatal for application startup and log diagnostics through the app logger.
+In `workflow/plugins/observability/wiring.go`, add a low-priority hook named
+`observability.telemetry-bridge` that looks for a service invoker on the
+configured `observability.telemetry` module, wraps it in the host-side sink
+adapter, and registers/starts the bridge module. If no sink is available, use
+`NoopSink`. Keep sink failures non-fatal and log diagnostics through the app
+logger.
 
 **Step 4: Run tests to verify they pass**
 
@@ -381,6 +416,9 @@ Validation must check:
 - every route references declared receivers/exporters
 - public endpoints require auth fields
 - default sensitive key deny-list is present
+- sensitive attribute filtering drops or redacts default blocked keys before
+  records reach module storage or renderer output. Add tests using
+  `authorization`, `cookie`, `token`, and `secret`.
 
 **Step 4: Run tests to verify they pass**
 
@@ -444,7 +482,11 @@ Implement module type `observability.telemetry`:
 - Accepts service/env/resource/log/trace/metric config.
 - Stores received neutral records in an in-memory sink for tests and phase-one smoke checks.
 - Exposes methods `recordMetrics`, `recordLogs`, and `snapshot`.
-- Provides service name `observability.telemetry.sink` through module schema metadata.
+- Exposes service invocation methods consumed by the host-side sink adapter:
+  `recordMetrics`, `recordLogs`, `recordSpanEvents`, and `snapshot`. Do not rely
+  on schema metadata to create in-process services; the host adapter owns that
+  boundary.
+- Applies sensitive attribute filtering before records are stored.
 
 Update plugin module registration and `plugin.json` capabilities.
 
@@ -600,6 +642,10 @@ Update generated templates:
 
 Add `observability.telemetry` and `observability.collector` to type registry as observability modules. Keep `metrics.collector` registered for backwards compatibility and mark docs/deprecation text where the registry supports descriptions.
 
+This task updates templates used for newly generated applications only. It must
+not rewrite existing project YAML; existing app migrations happen explicitly in
+their owning repos.
+
 **Step 4: Run tests to verify they pass**
 
 Run: `GOWORK=off go test ./cmd/wfctl -run 'Test.*Template|TestTypeRegistry|TestDocs'`
@@ -674,13 +720,20 @@ In `host/server.go`:
 - Remove `Metrics()` if only tests used it; otherwise deprecate it and return a snapshot-only helper not tied to HTTP.
 - Delete `monitoring` package.
 
-Update `go.mod` to depend on local/new Workflow version during development. If this is not yet published, use a temporary local replace while testing:
+Update `go.mod` to depend on the local/new Workflow version during development.
+If this is not yet published, use a temporary local replace while testing only:
 
 ```go
 replace github.com/GoCodeAlone/workflow => ../workflow
 ```
 
-Remove the replace before release if a tagged Workflow version exists.
+Before committing, remove the local replace unless the repository already uses
+workspace-local replaces as an accepted project convention. Add a verification
+step:
+
+Run: `rg -n "replace github.com/GoCodeAlone/workflow => ../workflow" go.mod`
+
+Expected: no matches before commit.
 
 **Step 4: Run tests to verify they pass**
 
@@ -770,4 +823,3 @@ Expected:
 - All listed tests pass.
 - `workflow-plugin-cms` has no `/metrics` route or `monitoring` package.
 - New templates create `observability.telemetry`, not `metrics.collector`.
-
