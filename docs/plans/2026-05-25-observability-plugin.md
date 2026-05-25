@@ -33,7 +33,7 @@
 | 3 | Prefer observability telemetry in wfctl templates | Task 6 | feat/observability-wfctl-templates |
 | 4 | Remove CMS custom metrics endpoint | Task 7, Task 8 | feat/observability-cms-metrics |
 
-**Status:** Draft
+**Status:** Locked 2026-05-25T00:51:28Z
 
 ### Task 1: Add Neutral Telemetry Contracts
 
