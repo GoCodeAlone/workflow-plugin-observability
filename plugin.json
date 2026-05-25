@@ -8,12 +8,20 @@
     "tier": "community",
     "private": false,
     "minEngineVersion": "0.51.7",
-    "keywords": [],
+    "keywords": [
+        "observability",
+        "opentelemetry",
+        "metrics",
+        "logs",
+        "traces"
+    ],
     "homepage": "https://github.com/GoCodeAlone/workflow-plugin-observability",
     "repository": "https://github.com/GoCodeAlone/workflow-plugin-observability",
     "capabilities": {
         "configProvider": false,
-        "moduleTypes": [],
+        "moduleTypes": [
+            "observability.telemetry"
+        ],
         "stepTypes": [],
         "triggerTypes": []
     },
