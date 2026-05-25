@@ -37,7 +37,8 @@ func (p *observabilityPlugin) Manifest() sdk.PluginManifest {
 // Remove this method if the plugin does not provide any modules.
 func (p *observabilityPlugin) ModuleTypes() []string {
 	return []string{
-		// "example.module_type",
+		"observability.collector",
+		"observability.telemetry",
 	}
 }
 
@@ -45,8 +46,10 @@ func (p *observabilityPlugin) ModuleTypes() []string {
 // Remove this method if the plugin does not provide any modules.
 func (p *observabilityPlugin) CreateModule(typeName, name string, config map[string]any) (sdk.ModuleInstance, error) {
 	switch typeName {
-	// case "example.module_type":
-	//     return newExampleModule(name, config)
+	case "observability.collector":
+		return newCollectorModule(name, config)
+	case "observability.telemetry":
+		return newTelemetryModule(name, config)
 	default:
 		return nil, fmt.Errorf("observability: unknown module type %q", typeName)
 	}

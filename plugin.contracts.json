@@ -1,4 +1,21 @@
 {
     "version": "1",
-    "contracts": []
+    "contracts": [
+        {
+            "moduleType": "observability.collector",
+            "methods": [
+                "plan",
+                "renderConfig"
+            ]
+        },
+        {
+            "moduleType": "observability.telemetry",
+            "methods": [
+                "recordMetrics",
+                "recordLogs",
+                "recordSpanEvents",
+                "snapshot"
+            ]
+        }
+    ]
 }
