@@ -3,7 +3,7 @@ module github.com/GoCodeAlone/workflow-plugin-observability
 go 1.26.0
 
 require (
-	github.com/GoCodeAlone/workflow v0.64.1
+	github.com/GoCodeAlone/workflow v0.64.2
 	gopkg.in/yaml.v3 v3.0.1
 )
 
