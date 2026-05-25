@@ -2,20 +2,70 @@
     "version": "1",
     "contracts": [
         {
-            "moduleType": "observability.collector",
-            "methods": [
-                "plan",
-                "renderConfig"
-            ]
+            "kind": "module",
+            "type": "observability.collector",
+            "mode": "strict_proto",
+            "config": "workflow.plugin.observability.v1.CollectorConfig"
         },
         {
+            "kind": "module",
+            "type": "observability.telemetry",
+            "mode": "strict_proto",
+            "config": "workflow.plugin.observability.v1.TelemetryConfig"
+        },
+        {
+            "kind": "service_method",
+            "moduleType": "observability.collector",
+            "serviceName": "observability.collector",
+            "method": "plan",
+            "mode": "strict_proto",
+            "input": "workflow.plugin.observability.v1.Empty",
+            "output": "workflow.plugin.observability.v1.CollectorPlanOutput"
+        },
+        {
+            "kind": "service_method",
+            "moduleType": "observability.collector",
+            "serviceName": "observability.collector",
+            "method": "renderConfig",
+            "mode": "strict_proto",
+            "input": "workflow.plugin.observability.v1.Empty",
+            "output": "workflow.plugin.observability.v1.RenderConfigOutput"
+        },
+        {
+            "kind": "service_method",
             "moduleType": "observability.telemetry",
-            "methods": [
-                "recordMetrics",
-                "recordLogs",
-                "recordSpanEvents",
-                "snapshot"
-            ]
+            "serviceName": "observability.telemetry",
+            "method": "recordMetrics",
+            "mode": "strict_proto",
+            "input": "workflow.plugin.observability.v1.RecordMetricsInput",
+            "output": "workflow.plugin.observability.v1.AcceptedOutput"
+        },
+        {
+            "kind": "service_method",
+            "moduleType": "observability.telemetry",
+            "serviceName": "observability.telemetry",
+            "method": "recordLogs",
+            "mode": "strict_proto",
+            "input": "workflow.plugin.observability.v1.RecordLogsInput",
+            "output": "workflow.plugin.observability.v1.AcceptedOutput"
+        },
+        {
+            "kind": "service_method",
+            "moduleType": "observability.telemetry",
+            "serviceName": "observability.telemetry",
+            "method": "recordSpanEvents",
+            "mode": "strict_proto",
+            "input": "workflow.plugin.observability.v1.RecordSpanEventsInput",
+            "output": "workflow.plugin.observability.v1.AcceptedOutput"
+        },
+        {
+            "kind": "service_method",
+            "moduleType": "observability.telemetry",
+            "serviceName": "observability.telemetry",
+            "method": "snapshot",
+            "mode": "strict_proto",
+            "input": "workflow.plugin.observability.v1.Empty",
+            "output": "workflow.plugin.observability.v1.SnapshotOutput"
         }
     ]
 }

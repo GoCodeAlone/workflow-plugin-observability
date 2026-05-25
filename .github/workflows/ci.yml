@@ -24,8 +24,20 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: GoCodeAlone/setup-wfctl@v1
         with:
-          go-version-file: go.mod
+          version: v0.64.2
       - name: Validate strict plugin contracts
-        run: go run github.com/GoCodeAlone/workflow/cmd/wfctl@v0.20.1 plugin validate --file plugin.json --strict-contracts
+        run: |
+          test "$(jq -r '.version' plugin.json)" = "0.0.0"
+          jq -e 'all(.downloads[].url; contains("/releases/download/v0.0.0/"))' plugin.json
+          wfctl plugin validate --file plugin.json --strict-contracts
+          wfctl plugin validate-contract .
+          tmp_dir=$(mktemp -d)
+          cp plugin.json "$tmp_dir/"
+          cp plugin.contracts.json "$tmp_dir/"
+          sed -i.bak 's/"version": ".*"/"version": "0.0.0-ci-rewrite-test"/' "$tmp_dir/plugin.json" && rm -f "$tmp_dir/plugin.json.bak"
+          sed -i.bak 's|/releases/download/v[^/]*/|/releases/download/v0.0.0-ci-rewrite-test/|g' "$tmp_dir/plugin.json" && rm -f "$tmp_dir/plugin.json.bak"
+          jq -e 'all(.downloads[].url; contains("/releases/download/v0.0.0-ci-rewrite-test/"))' "$tmp_dir/plugin.json"
+          wfctl plugin validate --file "$tmp_dir/plugin.json" --strict-contracts
+          rm -rf "$tmp_dir"
