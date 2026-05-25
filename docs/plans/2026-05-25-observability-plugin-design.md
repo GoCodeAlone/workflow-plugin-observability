@@ -92,6 +92,31 @@ The exact names can change during implementation, but the boundary is fixed:
 producer interfaces belong to Workflow core/SDK; exporter implementations
 belong to the observability plugin.
 
+Workflow core also owns the host-side telemetry bridge. This bridge runs inside
+the Workflow process, discovers services/modules that satisfy the producer
+interfaces, records telemetry into neutral snapshots, and forwards those
+snapshots to the configured observability runtime. This is required because an
+external plugin process cannot inspect the host application's in-process service
+registry directly.
+
+The bridge API is host-owned:
+
+```go
+type TelemetrySink interface {
+	RecordMetrics(context.Context, []MetricRecord) error
+	RecordLogs(context.Context, []TelemetryLogRecord) error
+	RecordSpanEvents(context.Context, []SpanEvent) error
+}
+
+type TelemetryBridge struct {
+	Sink TelemetrySink
+}
+```
+
+When `workflow-plugin-observability` is installed, its module provides a sink
+through the existing service invocation path. When it is absent, Workflow uses a
+no-op sink and emitters remain inert.
+
 ### 2. Observability Plugin Runtime
 
 `workflow-plugin-observability` owns modules that translate Workflow YAML into
@@ -346,11 +371,13 @@ Phase 1 is intentionally small and independently shippable:
 
 1. Scaffold `workflow-plugin-observability`.
 2. Add neutral telemetry interfaces to Workflow core/SDK.
-3. Implement `observability.telemetry` and an in-memory/test exporter.
-4. Implement `observability.collector` validation and intermediate pipeline
+3. Add the host-side telemetry bridge that discovers emitters and forwards
+   neutral snapshots to a configured sink.
+4. Implement `observability.telemetry` and an in-memory/test exporter.
+5. Implement `observability.collector` validation and intermediate pipeline
    model.
-5. Implement OTel Collector YAML rendering and external-collector env wiring.
-6. Migrate one current `/metrics` producer behind parity tests.
+6. Implement OTel Collector YAML rendering and external-collector env wiring.
+7. Migrate one current `/metrics` producer behind parity tests.
 
 Phase 2 adds managed collector provisioning through `wfctl` and provider plugin
 adapters, beginning with the provider we dogfood first.
