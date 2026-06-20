@@ -1,19 +1,28 @@
 {
     "name": "workflow-plugin-observability",
-    "version": "0.1.1",
+    "version": "0.0.0",
     "description": "observability plugin for the workflow engine",
     "author": "GoCodeAlone",
     "license": "MIT",
     "type": "external",
     "tier": "community",
     "private": false,
-    "minEngineVersion": "0.51.7",
-    "keywords": [],
+    "minEngineVersion": "0.64.2",
+    "keywords": [
+        "observability",
+        "opentelemetry",
+        "metrics",
+        "logs",
+        "traces"
+    ],
     "homepage": "https://github.com/GoCodeAlone/workflow-plugin-observability",
     "repository": "https://github.com/GoCodeAlone/workflow-plugin-observability",
     "capabilities": {
         "configProvider": false,
-        "moduleTypes": [],
+        "moduleTypes": [
+            "observability.collector",
+            "observability.telemetry"
+        ],
         "stepTypes": [],
         "triggerTypes": []
     },
@@ -22,27 +31,32 @@
         {
             "os": "linux",
             "arch": "amd64",
-            "url": "https://github.com/GoCodeAlone/workflow-plugin-observability/releases/download/v0.1.0/workflow-plugin-observability-linux-amd64.tar.gz"
+            "url": "https://github.com/GoCodeAlone/workflow-plugin-observability/releases/download/v0.0.0/workflow-plugin-observability-linux-amd64.tar.gz"
         },
         {
             "os": "linux",
             "arch": "arm64",
-            "url": "https://github.com/GoCodeAlone/workflow-plugin-observability/releases/download/v0.1.0/workflow-plugin-observability-linux-arm64.tar.gz"
+            "url": "https://github.com/GoCodeAlone/workflow-plugin-observability/releases/download/v0.0.0/workflow-plugin-observability-linux-arm64.tar.gz"
         },
         {
             "os": "darwin",
             "arch": "amd64",
-            "url": "https://github.com/GoCodeAlone/workflow-plugin-observability/releases/download/v0.1.0/workflow-plugin-observability-darwin-amd64.tar.gz"
+            "url": "https://github.com/GoCodeAlone/workflow-plugin-observability/releases/download/v0.0.0/workflow-plugin-observability-darwin-amd64.tar.gz"
         },
         {
             "os": "darwin",
             "arch": "arm64",
-            "url": "https://github.com/GoCodeAlone/workflow-plugin-observability/releases/download/v0.1.0/workflow-plugin-observability-darwin-arm64.tar.gz"
+            "url": "https://github.com/GoCodeAlone/workflow-plugin-observability/releases/download/v0.0.0/workflow-plugin-observability-darwin-arm64.tar.gz"
         },
         {
             "os": "windows",
             "arch": "amd64",
-            "url": "https://github.com/GoCodeAlone/workflow-plugin-observability/releases/download/v0.1.0/workflow-plugin-observability-windows-amd64.tar.gz"
+            "url": "https://github.com/GoCodeAlone/workflow-plugin-observability/releases/download/v0.0.0/workflow-plugin-observability-windows-amd64.tar.gz"
+        },
+        {
+            "os": "windows",
+            "arch": "arm64",
+            "url": "https://github.com/GoCodeAlone/workflow-plugin-observability/releases/download/v0.0.0/workflow-plugin-observability-windows-arm64.tar.gz"
         }
     ]
 }

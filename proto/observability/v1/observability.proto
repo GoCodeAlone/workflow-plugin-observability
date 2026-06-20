@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+package workflow.plugin.observability.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/GoCodeAlone/workflow-plugin-observability/gen/observability/v1;observabilityv1";
+
+message TelemetryConfig {
+  string service_name = 1;
+  string environment = 2;
+  map<string, string> resource = 3;
+  string metrics_interval = 4;
+  string otlp_endpoint = 5;
+}
+
+message CollectorConfig {
+  string name = 1;
+  string distribution = 2;
+  string topology = 3;
+  repeated string signals = 4;
+  map<string, ReceiverConfig> receivers = 5;
+  map<string, ProcessorConfig> processors = 6;
+  map<string, ExporterConfig> exporters = 7;
+  repeated RouteConfig routes = 8;
+  string endpoint = 9;
+  string otlp_endpoint = 10;
+}
+
+message ReceiverConfig {
+  string type = 1;
+  string endpoint = 2;
+  repeated string protocols = 3;
+  bool public = 4;
+  string auth_ref = 5;
+}
+
+message ProcessorConfig {
+  string type = 1;
+  google.protobuf.Struct config = 2;
+}
+
+message ExporterConfig {
+  string type = 1;
+  string endpoint = 2;
+  map<string, string> headers = 3;
+  string api_key_ref = 4;
+  string auth_ref = 5;
+  bool public = 6;
+  TLSConfig tls = 7;
+  string compression = 8;
+}
+
+message TLSConfig {
+  bool enabled = 1;
+  string ca_ref = 2;
+}
+
+message RouteConfig {
+  repeated string signals = 1;
+  repeated string receivers = 2;
+  repeated string processors = 3;
+  repeated string exporters = 4;
+}
+
+message Empty {}
+
+message CollectorPlan {
+  string name = 1;
+  string distribution = 2;
+  string topology = 3;
+  string config = 4;
+}
+
+message GeneratedResourceRef {
+  string kind = 1;
+  string name = 2;
+  map<string, string> labels = 3;
+}
+
+message CollectorPlanOutput {
+  CollectorPlan collector = 1;
+  map<string, string> env = 2;
+  repeated GeneratedResourceRef resources = 3;
+}
+
+message RenderConfigOutput {
+  string config = 1;
+}
+
+message MetricRecord {
+  string name = 1;
+  string kind = 2;
+  double value = 3;
+  map<string, string> attrs = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+message LogRecord {
+  google.protobuf.Timestamp timestamp = 1;
+  string level = 2;
+  string message = 3;
+  string module = 4;
+  map<string, string> attrs = 5;
+}
+
+message SpanEvent {
+  string name = 1;
+  map<string, string> attrs = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message RecordMetricsInput {
+  repeated MetricRecord metrics = 1;
+}
+
+message RecordLogsInput {
+  repeated LogRecord logs = 1;
+}
+
+message RecordSpanEventsInput {
+  repeated SpanEvent events = 1;
+}
+
+message AcceptedOutput {
+  bool accepted = 1;
+  int32 count = 2;
+}
+
+message SnapshotOutput {
+  repeated MetricRecord metrics = 1;
+  repeated LogRecord logs = 2;
+  repeated SpanEvent spanEvents = 3;
+}

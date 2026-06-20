@@ -15,6 +15,11 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+      - uses: GoCodeAlone/setup-wfctl@v1
+        with:
+          version: v0.64.2
+      - name: Validate plugin contract for publish (pre-build)
+        run: wfctl plugin validate-contract --for-publish --tag "${{ github.ref_name }}" .
       - uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser
@@ -22,6 +27,24 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # workflow#765: runtime truth-check via plugin verify-capabilities.
+      - name: Verify capabilities (runtime truth-check)
+        run: |
+          RUNNER_ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+          BIN=$(jq -r --arg arch "$RUNNER_ARCH" \
+            '[.[] | select(.type=="Binary" and .goos=="linux" and .goarch==$arch and (.name|startswith("workflow-plugin-observability")))] | .[0].path // ""' \
+            dist/artifacts.json)
+          if [ -z "$BIN" ] || [ "$BIN" = "null" ]; then
+            echo "::warning::No matching linux/$RUNNER_ARCH binary in dist/artifacts.json; skipping verify-capabilities"
+            jq '.[] | {name, type, goos, goarch, path}' dist/artifacts.json
+            exit 0
+          fi
+          wfctl plugin verify-capabilities --binary "$BIN" .
+      - name: Verify shipped plugin.json carries tag (post-build)
+        run: |
+          wfctl plugin validate-contract --for-publish --tag "${{ github.ref_name }}" --release-dir .release .
+          wfctl plugin validate --file .release/plugin.json --strict-contracts
+          jq -e --arg tag "${{ github.ref_name }}" 'all(.downloads[].url; contains("/releases/download/" + $tag + "/"))' .release/plugin.json
       - name: Publish GitHub release
         if: ${{ success() }}
         env:
