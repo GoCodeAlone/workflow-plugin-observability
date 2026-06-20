@@ -753,7 +753,7 @@ Rollback: revert this commit to restore the prior `/metrics` route while investi
 ### Task 8: End-To-End Smoke And Documentation
 
 **Files:**
-- Create: `/Users/jon/workspace/workflow-plugin-observability/examples/external-collector/workflow.yaml`
+- Create: `/Users/jon/workspace/workflow-plugin-observability/example/external-collector/workflow.yaml`
 - Create: `/Users/jon/workspace/workflow-plugin-observability/README.md`
 - Modify: `/Users/jon/workspace/workflow-plugin-observability/CLAUDE.md`
 - Modify: `/Users/jon/workspace/workflow-plugin-observability/docs/plans/2026-05-25-observability-plugin.md`
@@ -823,3 +823,8 @@ Expected:
 - All listed tests pass.
 - `workflow-plugin-cms` has no `/metrics` route or `monitoring` package.
 - New templates create `observability.telemetry`, not `metrics.collector`.
+
+Task 8 update: generic observability plugin docs and examples use
+application-neutral telemetry names. Concrete metric names are owned by the
+implementing application or plugin that satisfies the Workflow telemetry
+interfaces. The first migrated producer shipped in `workflow-plugin-cms v0.1.3`.
