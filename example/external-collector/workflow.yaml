@@ -8,7 +8,7 @@ modules:
         team: platform
         app: checkout
 
-  - name: collector
+  - name: checkout-api
     type: observability.collector
     config:
       distribution: external
@@ -17,7 +17,7 @@ modules:
       endpoint: https://otel-collector.example.com:4318
 
 # Expected application environment produced by the collector plan:
-# OTEL_SERVICE_NAME=collector
+# OTEL_SERVICE_NAME=checkout-api
 # OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector.example.com:4318
 # OTEL_TRACES_EXPORTER=otlp
 # OTEL_METRICS_EXPORTER=otlp

@@ -17,7 +17,7 @@ modules:
       serviceName: checkout-api
       environment: production
 
-  - name: collector
+  - name: checkout-api
     type: observability.collector
     config:
       distribution: external
