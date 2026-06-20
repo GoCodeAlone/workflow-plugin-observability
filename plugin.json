@@ -7,7 +7,7 @@
     "type": "external",
     "tier": "community",
     "private": false,
-    "minEngineVersion": "0.64.2",
+    "minEngineVersion": "0.80.24",
     "keywords": [
         "observability",
         "opentelemetry",
